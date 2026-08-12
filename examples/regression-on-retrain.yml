@@ -1,0 +1,30 @@
+# Compare a retrained candidate policy against the current baseline and
+# block the merge if it regressed. Uses 'compare' mode — only the paired
+# regression test runs, so it is fast enough to sit on every PR.
+
+name: cotter-regression
+
+on:
+  pull_request:
+    paths:
+      - "checkpoints/**"
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Did the retrain break anything?
+        uses: yih0nk/cotter-action@v1
+        with:
+          command: compare
+          baseline: checkpoints/grasp_baseline.zip
+          policy: checkpoints/grasp_candidate.zip   # the candidate
+          config: cotter.yaml
+          title: "Regression check"
+          comment-tag: regression

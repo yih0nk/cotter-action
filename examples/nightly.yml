@@ -1,0 +1,30 @@
+# Run the full battery nightly (including a trained adversary, which is
+# slower) and archive the HTML report as an artifact. Nothing to gate — a
+# scheduled run has no PR to comment on — so commenting is turned off.
+
+name: cotter-nightly
+
+on:
+  schedule:
+    - cron: "0 7 * * *"   # 07:00 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  battery:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Full nightly battery
+        uses: yih0nk/cotter-action@v1
+        with:
+          policy: checkpoints/grasp_latest.zip
+          config: cotter-nightly.yaml   # a config with adversarial.train: true
+          comment: false
+          upload-artifact: true
+          report-name: cotter-nightly-report
+          # keep a record but don't fail the scheduled run
+          fail-on-error: false

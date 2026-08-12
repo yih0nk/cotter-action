@@ -1,0 +1,27 @@
+# Gate pull requests on Cotter's test battery and post a sticky report
+# comment. Drop this in your policy repo at .github/workflows/cotter.yml
+# and adjust the policy / config paths.
+
+name: cotter
+
+on:
+  pull_request:
+
+# Required for the sticky PR comment.
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  cotter:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cotter compliance gate
+        uses: yih0nk/cotter-action@v1
+        with:
+          policy: checkpoints/grasp_v3.zip
+          config: cotter.yaml
+          # fail the PR check if any category fails or a regression appears
+          fail-on-error: true
