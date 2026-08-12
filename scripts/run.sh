@@ -19,50 +19,43 @@ rm -f "$REPORT_JSON" "$REPORT_HTML"
 
 command="${INPUT_COMMAND:-run}"
 
-env_opt=()
-if [ -n "${INPUT_ENV:-}" ]; then
-  env_opt=(--env "$INPUT_ENV")
-fi
-
 # --report-html is spelled the same for both subcommands.
-html_opt=()
+want_html=""
 if cotter "$command" --help 2>/dev/null | grep -q -- '--report-html'; then
-  html_opt=(--report-html "$REPORT_HTML")
+  want_html="1"
 fi
 
-echo "::group::cotter $command"
+# Build a single argv array with conditional appends. Only this always
+# non-empty array is ever expanded, which keeps it safe under `set -u`
+# on every bash version (an empty-array expansion errors on bash < 4.4).
 case "$command" in
   run)
-    cotter run \
-      --policy "$INPUT_POLICY" \
-      --config "$INPUT_CONFIG" \
-      "${env_opt[@]}" \
-      --report "$REPORT_JSON" \
-      "${html_opt[@]}"
+    cmd=(cotter run --policy "$INPUT_POLICY" --config "$INPUT_CONFIG")
+    [ -n "${INPUT_ENV:-}" ] && cmd+=(--env "$INPUT_ENV")
+    cmd+=(--report "$REPORT_JSON")
+    [ -n "$want_html" ] && cmd+=(--report-html "$REPORT_HTML")
     ;;
   compare)
     if [ -z "${INPUT_BASELINE:-}" ]; then
       echo "::error::command 'compare' requires the 'baseline' input"
       exit 2
     fi
+    cmd=(cotter compare --baseline "$INPUT_BASELINE" --candidate "$INPUT_POLICY" --config "$INPUT_CONFIG")
+    [ -n "${INPUT_ENV:-}" ] && cmd+=(--env "$INPUT_ENV")
     # 'compare' gained --report (JSON) later than --report-html; detect it.
-    json_opt=()
     if cotter compare --help 2>/dev/null | grep -q -- '--report '; then
-      json_opt=(--report "$REPORT_JSON")
+      cmd+=(--report "$REPORT_JSON")
     fi
-    cotter compare \
-      --baseline "$INPUT_BASELINE" \
-      --candidate "$INPUT_POLICY" \
-      --config "$INPUT_CONFIG" \
-      "${env_opt[@]}" \
-      "${json_opt[@]}" \
-      "${html_opt[@]}"
+    [ -n "$want_html" ] && cmd+=(--report-html "$REPORT_HTML")
     ;;
   *)
     echo "::error::unknown command '$command' (expected 'run' or 'compare')"
     exit 2
     ;;
 esac
+
+echo "::group::${cmd[*]}"
+"${cmd[@]}"
 code=$?
 echo "::endgroup::"
 
