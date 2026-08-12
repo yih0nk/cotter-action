@@ -1,0 +1,62 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  unit:
+    name: unit tests (markdown renderer)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install pytest
+      - run: pytest tests/ -q
+
+  action:
+    name: self-test the action end-to-end
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run — full battery on the fixture policy
+        id: run
+        uses: ./
+        with:
+          command: run
+          policy: tests/fixtures/victim_ppo_inverted_pendulum.zip
+          config: tests/fixtures/inverted_pendulum.yaml
+          comment: ${{ github.event_name == 'pull_request' }}
+          comment-tag: self-test-run
+          report-name: self-test-run
+          fail-on-error: false
+
+      - name: Compare — self-comparison (expect no regression)
+        id: compare
+        uses: ./
+        with:
+          command: compare
+          policy: tests/fixtures/victim_ppo_inverted_pendulum.zip
+          baseline: tests/fixtures/victim_ppo_inverted_pendulum.zip
+          config: tests/fixtures/inverted_pendulum.yaml
+          comment: ${{ github.event_name == 'pull_request' }}
+          comment-tag: self-test-compare
+          report-name: self-test-compare
+          fail-on-error: false
+
+      - name: Assert the action produced sensible outputs
+        run: |
+          echo "run outcome: '${{ steps.run.outputs.outcome }}'"
+          echo "compare outcome: '${{ steps.compare.outputs.outcome }}'"
+          test -n "${{ steps.run.outputs.outcome }}"
+          test -n "${{ steps.run.outputs.report-json }}"
+          # a self-comparison must not report a regression
+          test "${{ steps.compare.outputs.outcome }}" = "pass"
