@@ -1,0 +1,40 @@
+# Self-contained Cotter config for the action's self-test.
+#
+# Paths resolve relative to this file, so the baseline points at the
+# fixture policy sitting next to it. Kept deliberately light: the
+# adversarial category uses the random baseline only (train: false) so the
+# whole battery finishes in well under a minute on a CI runner.
+#
+# The action supplies --report / --report-html itself, so no 'report:' key.
+
+env: InvertedPendulum-v5
+algo: PPO
+base_seed: 0
+
+success:
+  type: min_length
+  value: 1000
+
+performance:
+  p0: 0.80
+  p1: 0.95
+  alpha: 0.05
+  beta: 0.05
+  n_max: 30
+
+safety:
+  n_episodes: 10
+  limits:
+    cotter/joint_velocities: 5.0
+    cotter/actuator_forces: 2.5
+
+regression:
+  baseline: victim_ppo_inverted_pendulum.zip   # self-comparison → expect NO_REGRESSION
+  n_pairs: 15
+  alpha: 0.05
+
+adversarial:
+  epsilon: 0.07
+  n_episodes: 10
+  min_success_rate: 0.5
+  train: false          # random baseline only — fast, deterministic-ish, no PPO training

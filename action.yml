@@ -1,0 +1,148 @@
+name: "Cotter — robot policy compliance gate"
+description: >-
+  Run Cotter's performance / safety / regression / adversarial test battery
+  on a trained robot policy, gate the build on the result, and post a sticky
+  report comment on the pull request.
+author: "yihan"
+
+branding:
+  icon: "shield"
+  color: "blue"
+
+inputs:
+  policy:
+    description: "Path to the policy under test (SB3 .zip or torch .pt). In 'compare' mode this is the candidate."
+    required: true
+  config:
+    description: "Path to the Cotter YAML config declaring the test battery."
+    required: true
+  command:
+    description: "'run' for the full battery, or 'compare' for a regression-only check against a baseline."
+    required: false
+    default: "run"
+  baseline:
+    description: "Baseline policy for 'compare' mode (ignored by 'run')."
+    required: false
+    default: ""
+  env:
+    description: "Gymnasium env id override (optional; defaults to the config's 'env')."
+    required: false
+    default: ""
+  cotter-version:
+    description: "cotterbot version to install from PyPI (e.g. '0.1.0'). Empty installs the latest."
+    required: false
+    default: ""
+  python-version:
+    description: "Python version for the run."
+    required: false
+    default: "3.11"
+  title:
+    description: "Heading used in the job summary and PR comment."
+    required: false
+    default: "Cotter report"
+  comment:
+    description: "Post/update a sticky PR comment with the report (pull_request events only)."
+    required: false
+    default: "true"
+  comment-tag:
+    description: "Identifier for the sticky comment, so several Cotter jobs can each own one."
+    required: false
+    default: "default"
+  upload-artifact:
+    description: "Upload the JSON (+ HTML, when available) report as a workflow artifact."
+    required: false
+    default: "true"
+  report-name:
+    description: "Name of the uploaded report artifact."
+    required: false
+    default: "cotter-report"
+  fail-on-error:
+    description: "Fail the step when a category fails / a regression is detected."
+    required: false
+    default: "true"
+  working-directory:
+    description: "Directory to resolve policy/config paths against."
+    required: false
+    default: "."
+  github-token:
+    description: "Token used to post the PR comment (needs 'pull-requests: write')."
+    required: false
+    default: ${{ github.token }}
+
+outputs:
+  outcome:
+    description: "'pass' or 'fail'."
+    value: ${{ steps.cotter.outputs.outcome }}
+  report-json:
+    description: "Path to the JSON report (empty if none was produced)."
+    value: ${{ steps.cotter.outputs.report-json }}
+  report-html:
+    description: "Path to the HTML report (empty if the installed cotterbot did not produce one)."
+    value: ${{ steps.cotter.outputs.report-html }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install cotterbot
+      shell: bash
+      run: |
+        python -m pip install --upgrade pip
+        if [ -n "${{ inputs.cotter-version }}" ]; then
+          pip install "cotterbot==${{ inputs.cotter-version }}"
+        else
+          pip install cotterbot
+        fi
+        cotter --version || true
+
+    - name: Run Cotter
+      id: cotter
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      run: bash "$GITHUB_ACTION_PATH/scripts/run.sh"
+      env:
+        INPUT_COMMAND: ${{ inputs.command }}
+        INPUT_POLICY: ${{ inputs.policy }}
+        INPUT_CONFIG: ${{ inputs.config }}
+        INPUT_BASELINE: ${{ inputs.baseline }}
+        INPUT_ENV: ${{ inputs.env }}
+
+    - name: Publish report
+      if: ${{ always() }}
+      shell: bash
+      run: |
+        python "$GITHUB_ACTION_PATH/scripts/post.py" \
+          --report "${{ runner.temp }}/cotter-report.json" \
+          --title "${{ inputs.title }}" \
+          --tag "${{ inputs.comment-tag }}" \
+          --outcome "${{ steps.cotter.outputs.outcome }}" \
+          --policy "${{ inputs.policy }}" \
+          --env "${{ inputs.env }}" \
+          ${{ inputs.comment == 'true' && '--comment' || '' }}
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+
+    - name: Upload report artifact
+      if: ${{ always() && inputs.upload-artifact == 'true' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.report-name }}
+        path: |
+          ${{ runner.temp }}/cotter-report.json
+          ${{ runner.temp }}/cotter-report.html
+        if-no-files-found: ignore
+
+    - name: Enforce gate
+      if: ${{ always() }}
+      shell: bash
+      run: |
+        outcome="${{ steps.cotter.outputs.outcome }}"
+        echo "Cotter outcome: ${outcome:-error}"
+        if [ "$outcome" = "fail" ] && [ "${{ inputs.fail-on-error }}" = "true" ]; then
+          echo "::error::Cotter gate failed — a test category did not pass."
+          exit 1
+        fi
