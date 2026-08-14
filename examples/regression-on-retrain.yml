@@ -17,7 +17,7 @@ jobs:
   regression:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Did the retrain break anything?
         uses: yih0nk/cotter-action@v1
