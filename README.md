@@ -1,5 +1,8 @@
 # cotter-action
 
+[![test](https://github.com/yih0nk/cotter-action/actions/workflows/test.yml/badge.svg)](https://github.com/yih0nk/cotter-action/actions/workflows/test.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 **Run [Cotter](https://github.com/yih0nk/cotter) — "pytest for robot
 policies" — in CI, gate the build on the result, and post a sticky report
 comment on the pull request.**
@@ -69,6 +72,11 @@ fails, and leaves a comment like this:
    `cotterbot` produces one — as a workflow artifact.
 5. **Fails the step** if a category failed or a regression was detected
    (toggle with `fail-on-error`).
+
+When the report includes a **reproducibility manifest** (cotterbot ≥ 0.2.0,
+report schema v2) — cotter/dependency versions, policy hash, content
+digest — the comment renders it as a collapsible section and shows the
+content hash in the footer.
 
 ## Modes
 
