@@ -9,10 +9,16 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "scripts"))
 from report_markdown import counts, marker, to_markdown  # noqa: E402
 
 FIXTURE = os.path.join(os.path.dirname(__file__), "fixtures", "sample_report.json")
+FIXTURE_V2 = os.path.join(os.path.dirname(__file__), "fixtures", "sample_report_v2.json")
 
 
 def load_sample():
     with open(FIXTURE, encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def load_sample_v2():
+    with open(FIXTURE_V2, encoding="utf-8") as fh:
         return json.load(fh)
 
 
@@ -78,3 +84,29 @@ def test_empty_results():
 def test_no_tag_omits_marker():
     md = to_markdown(load_sample())
     assert not md.startswith("<!--")
+
+
+def test_manifest_rendered_when_present():
+    md = to_markdown(load_sample_v2())
+    assert "Reproducibility manifest" in md
+    assert "cotter_version" in md
+    assert "sha256:" in md  # policy hash and/or content hash
+
+
+def test_content_hash_in_footer_when_present():
+    report = load_sample_v2()
+    md = to_markdown(report)
+    assert report["content_sha256"] in md
+
+
+def test_manifest_absent_for_v1_report():
+    # the v1 fixture has no manifest → no manifest section, no crash
+    md = to_markdown(load_sample())
+    assert "Reproducibility manifest" not in md
+
+
+def test_dependencies_dict_is_flattened():
+    report = load_sample_v2()
+    md = to_markdown(report)
+    # nested 'dependencies' dict must not render as a raw Python dict
+    assert "{'" not in md and "':" not in md
