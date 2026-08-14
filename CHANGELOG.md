@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.1.0 — unreleased
+## v0.1.0
 
 Initial release.
 
@@ -12,7 +12,9 @@ Initial release.
 - GitHub Actions job summary with the same report.
 - JSON (and HTML, where the installed `cotterbot` supports it) report
   uploaded as a workflow artifact.
+- Renders the **reproducibility manifest** and **content hash** when the
+  report carries them (cotterbot ≥ 0.2.0, report schema v2).
 - Optional flags (`--report`, `--report-html`) are feature-detected, so the
   action works across `cotterbot` versions.
 - Self-test workflow exercising both modes against a bundled
-  InvertedPendulum fixture.
+  InvertedPendulum fixture; actions pinned to current majors (Node 24).
