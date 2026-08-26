@@ -32,6 +32,10 @@ inputs:
     description: "cotterbot version to install from PyPI (e.g. '0.1.0'). Empty installs the latest."
     required: false
     default: ""
+  extras:
+    description: "Comma-separated pip extras to install with cotterbot (e.g. 'onnx' for ONNX policy support)."
+    required: false
+    default: ""
   python-version:
     description: "Python version for the run."
     required: false
@@ -92,10 +96,14 @@ runs:
       shell: bash
       run: |
         python -m pip install --upgrade pip
+        name="cotterbot"
+        if [ -n "${{ inputs.extras }}" ]; then
+          name="cotterbot[${{ inputs.extras }}]"
+        fi
         if [ -n "${{ inputs.cotter-version }}" ]; then
-          pip install "cotterbot==${{ inputs.cotter-version }}"
+          pip install "${name}==${{ inputs.cotter-version }}"
         else
-          pip install cotterbot
+          pip install "${name}"
         fi
         cotter --version || true
 
