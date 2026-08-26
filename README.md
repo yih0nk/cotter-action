@@ -64,12 +64,13 @@ fails, and leaves a comment like this:
 
 ## What it does
 
-1. Installs `cotterbot` from PyPI (pin with `cotter-version`).
+1. Installs `cotterbot` from PyPI (pin with `cotter-version`, add pip extras
+   with `extras` — e.g. `extras: onnx` to load `.onnx` policies).
 2. Runs `cotter run` (full battery) or `cotter compare` (regression only).
 3. Writes the report to the **job summary** and, on pull requests, a
    **sticky PR comment** (updated in place on re-runs, not duplicated).
-4. Uploads the **JSON** report — and the **HTML** report, when the installed
-   `cotterbot` produces one — as a workflow artifact.
+4. Uploads the **JSON**, **HTML**, and **JUnit XML** reports (each when the
+   installed `cotterbot` produces it) as a workflow artifact.
 5. **Fails the step** if a category failed or a regression was detected
    (toggle with `fail-on-error`).
 
@@ -98,6 +99,7 @@ regression-on-retrain check, and a nightly full battery.
 | `baseline` | `""` | Baseline policy for `compare` mode. |
 | `env` | `""` | Gymnasium env id override (defaults to the config's `env`). |
 | `cotter-version` | `""` | `cotterbot` version to install (e.g. `0.1.0`). Empty = latest. |
+| `extras` | `""` | Pip extras to install with cotterbot (e.g. `onnx` to load `.onnx` policies). |
 | `python-version` | `3.11` | Python version. |
 | `title` | `Cotter report` | Heading in the summary and comment. |
 | `comment` | `true` | Post/update a sticky PR comment (pull_request events only). |
@@ -115,6 +117,7 @@ regression-on-retrain check, and a nightly full battery.
 | `outcome` | `pass` or `fail`. |
 | `report-json` | Path to the JSON report (empty if none was produced). |
 | `report-html` | Path to the HTML report (empty if the installed `cotterbot` did not produce one). |
+| `report-junit` | Path to the JUnit XML report (empty if the installed `cotterbot` did not produce one). |
 
 ## Permissions
 

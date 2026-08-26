@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.2.0 (unreleased)
+
+- **`extras` input** — install cotterbot with pip extras (e.g. `extras: onnx`
+  to load `.onnx` policies).
+- **JUnit XML report** — feature-detected `--report-junit`; when the
+  installed cotterbot supports it, the action writes the JUnit XML report,
+  exposes a `report-junit` output, and uploads it in the artifact bundle.
+
 ## v0.1.0
 
 Initial release.
