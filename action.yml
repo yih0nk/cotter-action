@@ -83,6 +83,9 @@ outputs:
   report-html:
     description: "Path to the HTML report (empty if the installed cotterbot did not produce one)."
     value: ${{ steps.cotter.outputs.report-html }}
+  report-junit:
+    description: "Path to the JUnit XML report (empty if the installed cotterbot did not produce one)."
+    value: ${{ steps.cotter.outputs.report-junit }}
 
 runs:
   using: "composite"
@@ -142,6 +145,7 @@ runs:
         path: |
           ${{ runner.temp }}/cotter-report.json
           ${{ runner.temp }}/cotter-report.html
+          ${{ runner.temp }}/cotter-report.xml
         if-no-files-found: ignore
 
     - name: Enforce gate
